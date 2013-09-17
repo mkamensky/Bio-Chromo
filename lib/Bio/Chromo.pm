@@ -24,7 +24,7 @@ achieved through the L</aminos()> method. The other notable feature of this
 classes is that it automatically caches the chromosome data it needs, which 
 drastically reduces the time, memory and bandwidth consumed.
 
-=head1 BIOLOGICAL BACKGROUND
+=head2 BIOLOGICAL BACKGROUND
 
 This section contains a short (and imprecise) summary of the biological 
 background required to understand the problem solved by this module.
@@ -93,7 +93,7 @@ L<Bio::Location::Simple> object.
 
 =back
 
-=head2 Algorithm for finding the codon
+=head3 Algorithm for finding the codon
 
 Summarising all the information above, we discover that to find the codons of 
 the base at position N, is logically equivalent to:
@@ -395,5 +395,11 @@ sub _fetch_gb {
     }
     $seq
 }
+
+=head1 SEE ALSO
+
+L<Bio::Chromo::CDS>, L<List::Sorted>
+
+=cut
 
 1; # End of Bio::Chromo

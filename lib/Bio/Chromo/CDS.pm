@@ -146,5 +146,11 @@ sub amino {
     map { $self->trans($_) } $self->codon($i)
 }
 
+=head1 SEE ALSO
+
+L<Bio::Chromo>
+
+=cut
+
 1;
 
