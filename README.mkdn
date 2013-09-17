@@ -1,0 +1,214 @@
+# NAME
+
+Bio::Chromo - List of genes in a chromosome
+
+# VERSION
+
+version 0.001
+
+# SYNOPSIS
+
+    $chromo = new Bio::Chromo 'NC_000002';
+    @aminos = $chromo->aminos(272244); # D, T
+    @codons = $chromo->codons(272244); # gac, acc
+
+# DESCRIPTION
+
+This class represents the list of `CDS` features in a chromosome.  
+The list is held sorted (by inheriting from [List::Sorted](http://search.cpan.org/perldoc?List::Sorted)) for speed of 
+lookup. The main purpose of this class is currently to easily retrieve the 
+amino acid produced by a particular location in the chromosome. This is 
+achieved through the ["aminos()"](#aminos()) method. The other notable feature of this 
+classes is that it automatically caches the chromosome data it needs, which 
+drastically reduces the time, memory and bandwidth consumed.
+
+## BIOLOGICAL BACKGROUND
+
+This section contains a short (and imprecise) summary of the biological 
+background required to understand the problem solved by this module.
+
+The DNA consists of a fixed (per species) number of _chromosomes_. Each 
+chromosome can be dealt with independently, and so we always consider a fixed 
+chromosome. In humans, the chromosomes are enumerated 1-22, X, Y. The 
+chromosome is a sequence of the letters A,T,C,G. Each such letter is called a 
+_base_ or a _nucleotide_. The letters A and T and the letters C and G are 
+dual to each other. The process of turning each letter to its dual in a given 
+sequence is termed _complementing_ the sequence.
+
+The purpose of the DNA is to code (and produce) _proteins_. A protein is 
+coded by a segment of the chromosome called a _gene_. The protein itself is 
+a sequence of _amino acids_, and the protein is coded by coding this 
+sequence. Each kind of amino acid is also symbolised by a fixed latin letter.  
+An amino acid is coded by a sequence of 3 bases in the gene. Such a sequence 
+is called a _codon_. Thus, the main goal of this module is to compute in 
+which codon a particular base lies. We further have the following 
+terminology:
+
+- Feature
+
+    Generic name for an interesting part of the chromosome. Types of features are 
+    identified by their _primary tag_. For us, it seems that the only one of 
+    interest is __CDS__.
+
+- CDS
+
+    Essentially, the same as a gene. However, every gene may have more than one 
+    interpretation, in the sense that the same (approximate) region in the 
+    chromosome might code several different proteins. These different variants 
+    correspond to different CDS features, though they are considered to be the 
+    same gene. It is impossible to determine, from the chromosome data alone, 
+    which interpretation is actually used: This depends on biological input 
+    external to the DNA (and might change, e.g., from one cell to another).  
+    Therefore, we consider all of them.
+
+    In this module, a CDS feature is represented by a helper class, 
+    [Bio::Chromo::CDS](http://search.cpan.org/perldoc?Bio::Chromo::CDS). Each [Bio::Chromo](http://search.cpan.org/perldoc?Bio::Chromo) object is essentially a sorted array 
+    of [Bio::Chromo::CDS](http://search.cpan.org/perldoc?Bio::Chromo::CDS) objects.
+
+- Gene
+
+    Largest meaningful unit. Each gene codes a protein, though there might be 
+    several variants, as explained above. Each gene has a name, like 'FAM110C', 
+    and these names are different for different genes on the same chromosome 
+    (though not for different CDSs that correspond to the same gene). 
+
+    The part of the gene that actually corresponds to the protein need not be 
+    contiguous: each contiguous part is called an _exon_. The part that actually 
+    codes the protein is obtained by concatenating the exons in one gene, and 
+    then possibly reversing (the order) and complementing the resulting sequence.
+
+    The list and boundaries of the exons might differ in different CDSs 
+    corresponding to the same gene. For this reason, we are not directly 
+    interested in the genes, and they have no counterpart in the code.
+
+- Exon
+
+    As explained above, this is a connected component of the part of a gene that 
+    actually codes a protein. Each of this is represented in the code by a 
+    [Bio::Location::Simple](http://search.cpan.org/perldoc?Bio::Location::Simple) object.
+
+### Algorithm for finding the codon
+
+Summarising all the information above, we discover that to find the codons of 
+the base at position N, is logically equivalent to:
+
+1. Find all CDS features containing position N
+2. For each such feature, concatenate the exons to obtain a string S
+3. Compute the location M of position N within the string S
+4. If the direction (strand) of the gene is reversed, reverse and complement S, 
+updating M.
+5. Compute L=M/3, rounding down. The codon consists of the three bases within S 
+starting at 3\*L.
+
+In reality, we perform a slightly different computation, and also compute 
+directly the amino acid, rather than the codon (the translation from codons 
+to amino acids is completely determined). This is done for reasons of 
+efficiency, and should be equivalent.
+
+# METHODS
+
+## new()
+
+    my $chromo = new Bio::Chromo [B<$seq>]
+
+Create a new [Bio::Chromo](http://search.cpan.org/perldoc?Bio::Chromo) object. The __$seq__ argument can be either a 
+[Bio::SeqI](http://search.cpan.org/perldoc?Bio::SeqI) type object (or anything else that has a _get\_SeqFeatures_ 
+method), or an id, such as `NC_000002`. The object is initialised using 
+either [init\_from\_seq()](http://man.he.net/man1/init\_from\_seq) or [init\_from\_id()](http://man.he.net/man1/init\_from\_id), as appropriate.
+
+## aminos()
+
+    @aminos = $self->aminos($i)
+
+Return the list of possible amino acids coded by a possible codon to which 
+the given base $i belongs. Thus, each element in the result is one upper case 
+letter, or `*` for the end of the sequence.
+
+## codons()
+
+    @codons = $self->codons($i)
+
+Return the list of possible codons to which  the given base $i belongs. Thus, 
+each element in the result consists of a string of length 3 on the alphabet 
+`ACGT`.
+
+## genes()
+
+    @genes = $self->genes($i);
+
+Returns the indices of all genes containing the given position. More 
+precisely, each element returned is an index into $self of a feature (`CDS`) 
+containing absolute position $i on the sequence. Note that the direction 
+(strand) plays no role here. The features themselves, as [Bio::Chromo::CDS](http://search.cpan.org/perldoc?Bio::Chromo::CDS) 
+objects, can be accessed by usual array notation into $self, as in
+
+    for my $g ( @genes ) {
+        my $feat = $self->[$g];
+        # $feat is a Bio::Chromo::CDS object now
+        # ...
+    }
+
+## init\_from\_seq()
+
+    $self->init_from_seq($seq)
+
+Initialise the object from the given [Bio::SeqI](http://search.cpan.org/perldoc?Bio::SeqI) object `$seq`. In fact, 
+`$seq` is only required to have a _get\_SeqFeatures_ method, which returns a 
+list of objects that look like [Bio::SeqFeatureI](http://search.cpan.org/perldoc?Bio::SeqFeatureI). The resulting object will 
+hold a list of items corresponding to the __CDS__ items in `$seq`.
+
+Returns true iff the initialisation was successful
+
+## init\_from\_id()
+
+    $self->init_from_id($id)
+
+Initialise the object from the sequence with id `$id`, a string that looks 
+something like __NC\_000002__. This is logically equivalent to fetching the 
+sequence given by `$id` from GenBank, and then calling [init\_from\_seq()](http://man.he.net/man1/init\_from\_seq) 
+with it, except we store a cache of the actual structures, and so this is 
+potentially much faster and less memory and network consuming. Both the cache 
+file and the GenBank file will be stored on the local machine, in the 
+directory given by [DataDir()](http://man.he.net/man1/DataDir). These files need to be erased if the 
+GenBank file should be re-downloaded from the site (for example, if there is 
+a new version on the web).
+
+Returns true iff the initialisation was successful
+
+## DataDir()
+
+Returns the directory where the genbank files and the cache files are stored.  
+Taken from the environment variable `$GENBANK_DIR`, or `$HOME/genbank` by 
+default.
+
+## DataVersion()
+
+Version of the data stored in the cache. Should be increased whenever the 
+structure of the [Bio::Chromo::CDS](http://search.cpan.org/perldoc?Bio::Chromo::CDS) package is changed, or the format of the data 
+stored in the `yaml` cache files is otherwise modified.
+
+## \_fetch\_gb()
+
+    $seq = $self->_fetch_gb($id[, $gb[, $dir]])
+
+Fetch sequence with id $id from Genbank. If $gb is also given, this is the 
+full path of the file to which we write the result, for reuse. $dir is the 
+directory portion of $gb, which may be provided for efficiency.
+
+Returns the resulting [Bio::Seq](http://search.cpan.org/perldoc?Bio::Seq) object, or an empty list if fetching 
+failed.
+
+# SEE ALSO
+
+[Bio::Chromo::CDS](http://search.cpan.org/perldoc?Bio::Chromo::CDS), [List::Sorted](http://search.cpan.org/perldoc?List::Sorted)
+
+# AUTHOR
+
+Moshe Kamensky <kamensky@cpan.org>
+
+# COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2013 by Moshe Kamensky.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
