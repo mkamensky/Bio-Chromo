@@ -4,7 +4,7 @@ Bio::Chromo - List of genes in a chromosome
 
 # VERSION
 
-version 0.001
+version 0.002
 
 # SYNOPSIS
 

@@ -7,6 +7,7 @@ use warnings FATAL => 'all';
 
 use base qw(List::Sorted);
 use File::Spec::Functions qw(catfile catdir splitpath);
+use Bio::Chromo::CDS;
 
 =head1 SYNOPSIS
 
