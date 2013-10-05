@@ -137,7 +137,7 @@ Return the list of possible codons to which  the given base $i belongs. Thus,
 each element in the result consists of a string of length 3 on the alphabet 
 `ACGT`.
 
-## genes()
+## genes
 
     @genes = $self->genes($i);
 

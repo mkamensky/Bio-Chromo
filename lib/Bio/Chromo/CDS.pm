@@ -201,7 +201,16 @@ sub codon {
     map { $self->decode($_/3) } $self->gene_pos($i)
 }
 
-sub _trans {
+=method trans
+
+    $amino = $cds->trans($codon);
+
+Translate a codon string (3 bases) to the corresponding amino acid. Same as 
+L<Bio::Perl/translate_as_string>.
+
+=cut
+
+sub trans {
     require Bio::Perl;
     Bio::Perl::translate_as_string($_[1])
 }
@@ -217,7 +226,7 @@ interpreted as in L</codon>.
 
 sub amino {
     my ($self, $i) = @_;
-    map { $self->_trans($_) } $self->codon($i)
+    map { $self->trans($_) } $self->codon($i)
 }
 
 =head1 SEE ALSO
