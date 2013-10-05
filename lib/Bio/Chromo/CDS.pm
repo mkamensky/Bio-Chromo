@@ -3,7 +3,7 @@ package Bio::Chromo::CDS;
 
 use 5.10.0;
 use integer;
-use overload '""' => 'as_string';
+use overload '""' => '_as_string';
 use warnings;
 use strict;
 # This is required here, even though we don't create them explicitly, since 
@@ -28,7 +28,24 @@ use Bio::Location::Simple;
 
 =cut
 
+=func DataVersion
+
+Version of the data structure, to use when storing. Update when changing the 
+underlying data structure.
+
+=cut
+
 sub DataVersion { 1.2 }
+
+=method new
+
+    $cds = new Bio::Chromo::CDS $chromo, $feat;
+
+Create a new L<Bio::Chromo::CDS> object, belonging to chromosome $chromo, and 
+representing feature $feat. $feat should be something that looks like a 
+L<Bio::SeqFeatureI>.
+
+=cut
 
 sub new {
     my ($class, $chromo, $f) = @_;
@@ -79,6 +96,16 @@ sub new {
 my @num2base = qw(A C G T);
 my %base2num = map { $num2base[$_] => $_ } 0..$#num2base;
 
+=method encode
+
+    $str = $self->encode($seq)
+
+This method encodes a string of bases into a shorter string, where each codon 
+is represented by one character. Thus, each character in the result 
+determines an amino acid. This is a class method.
+
+=cut
+
 sub encode {
     my ($self, $seq) = @_;
     my $vec = '';
@@ -93,6 +120,18 @@ sub encode {
     $vec
 }
 
+=method decode
+
+    $seq = $self->decode([$start[,$len[,$str]]]);
+
+Decode a string as produced by L</encode> back into a sequence of bases. $str 
+is the string to decode. If not given, the internal string stored in $self is 
+used (if it is given, this can be used as a class method). $start and $len 
+give the starting index and length of the fragment to decode. They default to 
+0 and 1, respectively.
+
+=cut
+
 sub decode {
     my ($self, $start, $len, $vec) = @_;
     $vec //= $self->{'seq'};
@@ -106,44 +145,79 @@ sub decode {
 }
 }
 
-sub as_string { $_[0]->{'gene'} }
+sub _as_string { $_[0]->{'gene'} }
 
-sub loc {
+sub _loc {
     defined $_[1] ? $_[0]->{'loc'}[$_[1]] : $_[0]->{'loc'}
 }
 
+=method find_exon
+
+    $exon = $cds->find_exon($i);
+
+Find to which exon a given chromosome position belongs. The result is an 
+index into the list of exons (locations) for this gene.
+
+=cut
+
 sub find_exon {
     my ($self, $i) = @_;
-    for my $n ( 0..$#{$self->loc} ) {
-        return $n if $self->loc($n)->contains($i);
+    for my $n ( 0..$#{$self->_loc} ) {
+        return $n if $self->_loc($n)->contains($i);
     }
     ()
 }
 
-# return the position of chromosome position $i inside this gene. Honours
-# direction.
+=method gene_pos
+
+    $pos = $cds->gene_pos($i);
+
+Given an absolute position $i into the chromosome, returns the same position 
+in the coordinates of the gene to which it belongs. Honours direction. If $i 
+is not within the gene, an empty list is returned.
+
+=cut
+
 sub gene_pos {
     my ($self, $i) = @_;
     my $e = $self->find_exon($i);
     return () unless defined $e;
     my $p = $self->{'lens'}[$e];
-    $p + ($self->{'reverse'} ? $self->loc($e)->end - $i 
-                             : $i - $self->loc($e)->start)
+    $p + ($self->{'reverse'} ? $self->_loc($e)->end - $i 
+                             : $i - $self->_loc($e)->start)
 }
+
+=method codon
+
+     $codon = $cds->codon($i);
+
+Return the codon at position $i. Returns a string of 3 base letters. The 
+position $i is an absolute position in the chromosome.
+
+=cut
 
 sub codon {
     my ($self, $i) = @_;
     map { $self->decode($_/3) } $self->gene_pos($i)
 }
 
-sub trans {
+sub _trans {
     require Bio::Perl;
     Bio::Perl::translate_as_string($_[1])
 }
 
+=method amino
+
+    $amino = $self->amino($i);
+
+Returns the amino acid coded by codon at location $i. The location is 
+interpreted as in L</codon>.
+
+=cut
+
 sub amino {
     my ($self, $i) = @_;
-    map { $self->trans($_) } $self->codon($i)
+    map { $self->_trans($_) } $self->codon($i)
 }
 
 =head1 SEE ALSO

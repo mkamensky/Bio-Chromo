@@ -1,0 +1,201 @@
+#!/usr/bin/env perl
+# PODNAME: filltable
+# ABSTRACT: Fill a mutations table with the corresponding codons
+
+use 5.10.0;
+use warnings;
+use integer;
+use English qw(-no_match_vars);
+use IPC::System::Simple qw(system);
+use autodie qw(:all);
+
+use Bio::Chromo;
+
+BEGIN {
+    our ($VERSION) = '$Revision$' =~ m{\$Revision: \s+ (\S+)}x; ## no critic
+    our %chr2id = ( (map { ("chr$_" => sprintf("NC_%06d", $_)) } 1..22),
+                      chrX => 'NC_000023',
+                      chrY => 'NC_000024',
+                  );
+}
+
+use Getopt::Long qw(:config gnu_getopt auto_help auto_version);
+our %Opts = ();
+GetOptions(\%Opts);
+
+use Text::CSV_XS;
+
+my $csv = new Text::CSV_XS { auto_diag => 2, allow_whitespace => 1 };
+open my $fh, '<', shift;
+my %chr;
+my %head;
+our $row;
+while ( $row = $csv->getline($fh) ) {
+    if ( $row->[0] =~ /Matches/ ) {
+        %head = map { $row->[$_] => $_ } 0..$#$row;
+    }
+    if ( %head and $row->[$head{'Chrom'}] =~ /^\s*(chr(\d+|[XY]))\s*$/ ) {
+        my $chr = $1;
+        $chr{$chr} //= new Bio::Chromo $chr2id{$chr};
+        my $pos = $row->[$head{'Position'}];
+        our $id = "$chr:$pos";
+
+sub checkeq {
+    my ($field, $val) = @_;
+    warn "$id: Table says $field: $row->[$head{$field}], but we have $val\n" 
+                    unless $row->[$head{$field}] eq $val;
+}
+
+sub check_rep {
+    my ($field, $val) = @_;
+    warn "$id: Overwriting prev. value '$row->[$head{$field}]'  with '$val' for '$field'\n" 
+        if $row->[$head{$field}];
+    $row->[$head{$field}] = $val;
+}
+
+        my @gi = $chr{$chr}->genes($pos);
+        my $count = 0;
+        foreach ( @gi ) {
+            my $g = $chr{$chr}->[$_];
+            checkeq('Gene Sym', "$g");
+            my $gp = $g->gene_pos($pos);
+            unless (defined $gp) {
+                warn "$id: Skipping $_, no gene found\n";
+                next;
+            }
+            $count++;
+            my $i = $gp % 3;
+            my $var = $row->[$head{'Variant'}];
+            my ($codon) = $g->codon($pos);
+            check_rep('REF codon' => $codon);
+            my $c = substr($codon, $i, 1);
+            if ( $g->{'reverse'} ) {
+                $c =~ tr/ACGT/TGCA/;
+                $var =~ tr/ACGT/TGCA/;
+            }
+            checkeq('Ref', $c);
+            check_rep('REF AA' => $g->trans($codon));
+            substr($codon, $i, 1, $var);
+            check_rep('VAR codon' => $codon);
+            check_rep(' VAR AA' => $g->trans($codon));
+        }
+        unless ($count) {
+            check_rep('REF codon' => 'Non-coding');
+            check_rep('REF AA' => 'Non-coding');
+            check_rep('VAR codon' => 'Non-coding');
+            check_rep(' VAR AA' => 'Non-coding');
+        }
+        warn "$id: Processed $count times!\n" if $count > 1;
+    }
+    $csv->print(*STDOUT, $row);
+    say '';
+}
+
+
+
+
+
+# start of POD
+
+=head1 SYNOPSIS
+
+    filltable in.csv > out.csv
+
+=head1 OPTIONS
+
+=over
+
+=item --help,-?
+
+Give a short usage message and exit with status 1
+
+=item --version
+
+Print a line with the program name and exit with status 0
+
+=back
+
+=head1 ARGUMENTS
+
+The only argument is the file name of the input table, in CSV format. The the 
+specification of the table is under L</DESCRIPTION>.
+
+=head1 DESCRIPTION
+
+This script takes a table that contains information about base mutations in 
+human dna, and prints out a table containing also the codons to which the 
+original bases belong, as well as the mutated codon.
+
+=head2 Format of the input table
+
+The table is expected to have a row whose first cell contains the words 
+C<Matches>. The first such row is taken to be the head of the table.  
+Additional cells in this row are expected to be:
+
+=over
+
+=item Chrom
+
+The chromosome in which the mutation occured. The content has a form similar 
+to C<chr2> or C<chrX>.
+
+=item Position
+
+The position of the mutated base within the chromosome (a number).
+
+=item Variant
+
+The base that occurs in this position in the mutation
+
+=item REF codon
+
+The codon (triple of bases) to which the original base belongs. This field is 
+filled by the script.
+
+=item REF AA
+
+The amino acid coded by the L</REF codon>. Filled by the script.
+
+=item VAR codon
+
+The codon including the mutation. Filled by the script.
+
+=item VAR AA
+
+The amino acid coded by the L</VAR codon>. Filled by the script.
+
+=back
+
+The following columns are not necessary, but the script compares their values 
+as a sanity check.
+
+=over
+
+=item Gene Sym
+
+The name of the gene where the base was found
+
+=item Ref
+
+The original base in the given location.
+
+=back
+
+Additional fields may exist, and are ignored. It is assumed that any row 
+following the head row is part of the table.
+
+=head1 SEE ALSO
+
+L<Bio::Chromo>
+
+=head1 AUTHOR
+
+Moshe Kamensky  (E<lt>kamensky@cpan.orgE<gt>) - Copyright (c) 2013
+
+=head1 LICENSE
+
+This program is free software. You may copy or 
+redistribute it under the same terms as Perl itself.
+
+=cut
+

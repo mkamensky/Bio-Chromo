@@ -131,7 +131,7 @@ efficiency, and should be equivalent.
 
 =cut
 
-=method new()
+=method new
 
     my $chromo = new Bio::Chromo [B<$seq>]
 
@@ -156,14 +156,18 @@ sub new {
     $self
 }
 
-# order the CDS first by the starting point, and within each variation by the
-# end point.
-sub cmp {
-    my $self = shift;
-    $_[0]->{'start'} <=> $_[1]->{'start'} or $_[0]->{'end'} <=> $_[1]->{'end'}
+=method ccmp
+
+Compare two CDSs, for sorting using L<List::Sorted>. We order the CDS first 
+by the starting point, and within each variation by the end point.
+
+=cut
+
+sub ccmp {
+    $_[1]->{'start'} <=> $_[2]->{'start'} or $_[1]->{'end'} <=> $_[2]->{'end'}
 }
 
-=method aminos()
+=method aminos
 
     @aminos = $self->aminos($i)
 
@@ -316,8 +320,8 @@ sub DataDir { $DataDir }
 =method DataVersion()
 
 Version of the data stored in the cache. Should be increased whenever the 
-structure of the L<Bio::Chromo::CDS> package is changed, or the format of the data 
-stored in the C<yaml> cache files is otherwise modified.
+structure of the L<Bio::Chromo::CDS> package is changed, or the format of the 
+data stored in the C<yaml> cache files is otherwise modified.
 
 =cut
 

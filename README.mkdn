@@ -107,7 +107,7 @@ efficiency, and should be equivalent.
 
 # METHODS
 
-## new()
+## new
 
     my $chromo = new Bio::Chromo [B<$seq>]
 
@@ -116,7 +116,12 @@ Create a new [Bio::Chromo](http://search.cpan.org/perldoc?Bio::Chromo) object. T
 method), or an id, such as `NC_000002`. The object is initialised using 
 either [init\_from\_seq()](http://man.he.net/man1/init\_from\_seq) or [init\_from\_id()](http://man.he.net/man1/init\_from\_id), as appropriate.
 
-## aminos()
+## ccmp
+
+Compare two CDSs, for sorting using [List::Sorted](http://search.cpan.org/perldoc?List::Sorted). We order the CDS first 
+by the starting point, and within each variation by the end point.
+
+## aminos
 
     @aminos = $self->aminos($i)
 
@@ -184,8 +189,8 @@ default.
 ## DataVersion()
 
 Version of the data stored in the cache. Should be increased whenever the 
-structure of the [Bio::Chromo::CDS](http://search.cpan.org/perldoc?Bio::Chromo::CDS) package is changed, or the format of the data 
-stored in the `yaml` cache files is otherwise modified.
+structure of the [Bio::Chromo::CDS](http://search.cpan.org/perldoc?Bio::Chromo::CDS) package is changed, or the format of the 
+data stored in the `yaml` cache files is otherwise modified.
 
 ## \_fetch\_gb()
 
