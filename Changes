@@ -1,7 +1,7 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
-
+        * Pod fixes
 0.002     2013-10-05 23:26:37 Asia/Jerusalem
         * Refactoring, docs, bug fixes
 0.001     2013-10-05 20:14:19 Asia/Jerusalem
