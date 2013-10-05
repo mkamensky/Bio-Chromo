@@ -176,7 +176,7 @@ Return the list of possible amino acids coded by a possible codon to which
 the given base $i belongs. Thus, each element in the result is one upper case 
 letter, or C<*> for the end of the sequence.
 
-=method codons()
+=method codons
 
     @codons = $self->codons($i)
 
@@ -227,7 +227,7 @@ sub genes {
     @res
 }
 
-=method init_from_seq()
+=method init_from_seq
 
     $self->init_from_seq($seq)
 
@@ -251,7 +251,7 @@ sub init_from_seq {
     1
 }
 
-=method init_from_id()
+=method init_from_id
 
     $self->init_from_id($id)
 
@@ -306,7 +306,7 @@ sub init_from_id {
     @ret
 }
 
-=method DataDir()
+=method DataDir
 
 Returns the directory where the genbank files and the cache files are stored.  
 Taken from the environment variable C<$GENBANK_DIR>, or C<$HOME/genbank> by 
@@ -318,7 +318,7 @@ our $DataDir = $ENV{'GENBANK_DIR'} || catdir($ENV{'HOME'}, 'genbank');
 
 sub DataDir { $DataDir }
 
-=method DataVersion()
+=method DataVersion
 
 Version of the data stored in the cache. Should be increased whenever the 
 structure of the L<Bio::Chromo::CDS> package is changed, or the format of the 
@@ -358,7 +358,7 @@ sub _mkdir {
     -d $dir
 }
 
-=method _fetch_gb()
+=method _fetch_gb
 
     $seq = $self->_fetch_gb($id[, $gb[, $dir]])
 
