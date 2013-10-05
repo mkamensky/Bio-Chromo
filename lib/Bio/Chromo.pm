@@ -195,7 +195,7 @@ my $mets = $met . 's';
 }
 }
 
-=method genes()
+=method genes
 
     @genes = $self->genes($i);
 

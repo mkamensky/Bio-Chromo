@@ -35,7 +35,7 @@ underlying data structure.
 
 =cut
 
-sub DataVersion { 1.2 }
+sub DataVersion { 1.3 }
 
 =method new
 
