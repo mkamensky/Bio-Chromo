@@ -26,13 +26,20 @@ GetOptions(\%Opts);
 use Text::CSV_XS;
 
 my $csv = new Text::CSV_XS { auto_diag => 2, allow_whitespace => 1 };
-open my $fh, '<', shift;
 my %chr;
 my %head;
 our $row;
-while ( $row = $csv->getline($fh) ) {
+
+sub deblank {
+    my $s = shift;
+    $s =~ s/^\s*//;
+    $s =~ s/\s*$//;
+    $s
+}
+
+while ( $row = $csv->getline(ARGV) ) {
     if ( $row->[0] =~ /Matches/ ) {
-        %head = map { $row->[$_] => $_ } 0..$#$row;
+        %head = map { deblank($row->[$_]) => $_ } 0..$#$row;
     }
     if ( %head and $row->[$head{'Chrom'}] =~ /^\s*(chr(\d+|[XY]))\s*$/ ) {
         my $chr = $1;
@@ -48,8 +55,9 @@ sub checkeq {
 
 sub check_rep {
     my ($field, $val) = @_;
-    warn "$id: Overwriting prev. value '$row->[$head{$field}]'  with '$val' for '$field'\n" 
-        if $row->[$head{$field}];
+    my $oval = $row->[$head{$field}];
+    warn "$id: Overwriting prev. value '$oval'  with '$val' for '$field'\n" 
+        if $oval and $oval ne $val;
     $row->[$head{$field}] = $val;
 }
 
@@ -77,13 +85,13 @@ sub check_rep {
             check_rep('REF AA' => $g->trans($codon));
             substr($codon, $i, 1, $var);
             check_rep('VAR codon' => $codon);
-            check_rep(' VAR AA' => $g->trans($codon));
+            check_rep('VAR AA' => $g->trans($codon));
         }
         unless ($count) {
             check_rep('REF codon' => 'Non-coding');
             check_rep('REF AA' => 'Non-coding');
             check_rep('VAR codon' => 'Non-coding');
-            check_rep(' VAR AA' => 'Non-coding');
+            check_rep('VAR AA' => 'Non-coding');
         }
         warn "$id: Processed $count times!\n" if $count > 1;
     }
